@@ -1,0 +1,41 @@
+__pycache__/
+*.py[cod]
+.Python
+*.egg-info/
+dist/
+build/
+.eggs/
+*.manifest
+*.spec
+pip-wheel-metadata/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.DS_Store
+
+# virtualenvs
+.venv/
+.venv-*/
+venv/
+env/
+
+# secrets — must never be pushed
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*token*
+!UPSTREAM.md
+
+# logs / runtime
+*.log
+logs/
+
+# editor / IDE
+.idea/
+.vscode/
+*.swp
+
+# node, just in case any frontend tooling lands here
+node_modules/

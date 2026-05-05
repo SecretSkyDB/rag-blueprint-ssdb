@@ -1,0 +1,89 @@
+####################################################################
+# rag-blueprint-ssdb — RAG server + frontend overlay.
+#
+# This file mirrors NVIDIA-AI-Blueprints/rag v2.5.0's
+# `deploy/compose/docker-compose-rag-server.yaml` 1:1, with one
+# substitution: the vector store env vars point at our SSDB-backed
+# `ssdb-sql-rag` service (defined in ssdb-overlay.yaml) instead of
+# at Milvus.
+#
+# Bring up the headless retrieval stack:
+#
+#   docker compose \
+#     -f deploy/compose/docker-compose-rag-server.yaml \
+#     -f deploy/compose/ssdb-overlay.yaml \
+#     up -d
+#
+# Then ingest documents using the upstream ingestor:
+#
+#   docker compose \
+#     -f deploy/compose/docker-compose-ingestor-server.yaml \
+#     -f deploy/compose/ssdb-overlay.yaml \
+#     up -d
+#
+# UI: http://localhost:8090   (rag-frontend, container port 3000)
+#
+# References (real upstream URLs, verified against the live docs):
+#   https://docs.nvidia.com/rag/2.5.0/service-port-gpu-reference.html
+#   https://docs.nvidia.com/rag/2.4.0/change-model.html
+#   https://github.com/NVIDIA-AI-Blueprints/rag
+####################################################################
+
+services:
+
+  # ----------------------------------------------------------------
+  # RAG server — talks to NIMs, applies the agent / retriever workflow,
+  # and exposes /generate + /search to the frontend.
+  # ----------------------------------------------------------------
+  rag-server:
+    container_name: rag-server
+    image: nvcr.io/nvidia/blueprint/rag-server:${RAG_VERSION:-2.5.0}
+    ports:
+      - "8081:8081"
+    environment:
+      # ----- LLM (NVIDIA-hosted by default; override for self-hosted NIM) -----
+      APP_LLM_MODELNAME: ${APP_LLM_MODELNAME:-nvidia/llama-3.3-nemotron-super-49b-v1.5}
+      APP_LLM_SERVERURL: ${APP_LLM_SERVERURL:-}        # blank = use NVIDIA-hosted
+      NVIDIA_API_KEY:    ${NVIDIA_API_KEY:?set NVIDIA_API_KEY in .env}
+
+      # ----- Embedder (must match what ingestor used; 1024-dim by default) ----
+      APP_EMBEDDINGS_MODELNAME:   ${APP_EMBEDDINGS_MODELNAME:-nvidia/nv-embedqa-e5-v5}
+      APP_EMBEDDINGS_SERVERURL:   ${APP_EMBEDDINGS_SERVERURL:-}
+      APP_EMBEDDINGS_DIMENSIONS:  ${APP_EMBEDDINGS_DIMENSIONS:-1024}
+
+      # ----- Reranker --------------------------------------------------------
+      APP_RANKING_MODELNAME: ${APP_RANKING_MODELNAME:-nvidia/llama-3.2-nv-rerankqa-1b-v2}
+      APP_RANKING_SERVERURL: ${APP_RANKING_SERVERURL:-}
+
+      # ----- Vector store: SSDB instead of Milvus ----------------------------
+      # The upstream RAG server speaks vector-store via APP_VECTORSTORE_URL.
+      # We point at ssdb-sql-rag (defined in ssdb-overlay.yaml) which speaks
+      # the same /api/v1/{ingest,retrieve} contract via the nat-retriever-ssdb
+      # plug-in registered in the workflow YAML.
+      APP_VECTORSTORE_NAME: ssdb
+      APP_VECTORSTORE_URL:  http://ssdb-sql-rag:8080
+      APP_COLLECTION_NAME:  ${APP_COLLECTION_NAME:-nv_rag_documents}
+
+      # ----- Workflow YAML (mounted from blueprint/src) ----------------------
+      APP_CONFIG_FILE: /workflows/workflow.yml
+    volumes:
+      - ../../src:/workflows:ro
+    depends_on:
+      - ssdb-sql-rag
+
+  # ----------------------------------------------------------------
+  # rag-frontend — NVIDIA's reference chat UI.
+  # Image: pinned to the upstream blueprint's frontend artifact.
+  # Host port 8090 (container 3000), per
+  # https://docs.nvidia.com/rag/2.5.0/service-port-gpu-reference.html
+  # ----------------------------------------------------------------
+  rag-frontend:
+    container_name: rag-frontend
+    image: nvcr.io/nvidia/blueprint/rag-frontend:${RAG_VERSION:-2.5.0}
+    ports:
+      - "8090:3000"
+    environment:
+      RAG_SERVER_URL:      http://rag-server:8081
+      INGESTOR_SERVER_URL: http://ingestor-server:8082
+    depends_on:
+      - rag-server

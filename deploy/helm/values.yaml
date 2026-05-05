@@ -1,0 +1,26 @@
+####################################################################
+# Helm values overlay for rag-blueprint-ssdb
+#
+# Inherits the upstream NVIDIA RAG Blueprint chart; selects the SSDB
+# vector store and pulls in the SSDB sub-chart for the proxy + 3
+# shareholders + bridge.
+####################################################################
+
+vector_store: ssdb
+
+ssdb:
+  enabled: true
+  threshold: 3
+  shares:
+    count: 3
+    image: ghcr.io/secretskydb/ssdbpg:0.1
+    storage: 10Gi
+  proxy:
+    image: ghcr.io/secretskydb/ssdb-proxy:0.1
+    port: 55432
+  bridge:
+    image: ghcr.io/secretskydb/ssdb-bridge:0.1
+    embed_backend: nim
+    embedding_dim: 1024
+    embedding_scale: 1000000
+    port: 8000

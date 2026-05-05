@@ -1,0 +1,119 @@
+####################################################################
+# SSDB overlay for NVIDIA RAG Blueprint v2.5.0.
+#
+# Adds the secret-shared retrieval tier:
+#   ssdb-share-1/2/3      — independent Postgres + ssdbpgvector shareholders
+#   ssdb-proxy            — Shamir reconstruction, speaks Postgres protocol
+#   ssdb-sql-rag          — pure /api/v1/{ingest,retrieve} HTTP service
+#
+# Replaces the upstream `milvus-standalone` block. The RAG server +
+# ingestor server (in the sibling compose files) point their
+# APP_VECTORSTORE_URL at ssdb-sql-rag:8080 instead of milvus:19530.
+#
+# Bring up:
+#
+#   # base + overlay = headless retrieval stack
+#   docker compose \
+#     -f deploy/compose/docker-compose-rag-server.yaml \
+#     -f deploy/compose/docker-compose-ingestor-server.yaml \
+#     -f deploy/compose/ssdb-overlay.yaml \
+#     up -d
+#
+#   # ingest a corpus through the ingestor's REST API
+#   curl -fsS -X POST http://localhost:8082/v1/documents \
+#       -F "files=@README.md"
+#
+#   # open NVIDIA's chat UI
+#   open http://localhost:8090
+####################################################################
+
+services:
+
+  # ----------------------------------------------------------------
+  # Three independent Postgres + ssdbpgvector shareholders.
+  # Each holds polynomial shares of every secret column (title,
+  # source, content, embedding). No single shareholder has plaintext.
+  # ----------------------------------------------------------------
+  ssdb-share-1:
+    container_name: ssdb-share-1
+    image: ghcr.io/secretskydb/ssdbpg:${SSDB_VERSION:-0.1.0}
+    environment:
+      POSTGRES_USER: ssdb
+      POSTGRES_PASSWORD: ${SSDB_SHARE_PWD:?set SSDB_SHARE_PWD in .env}
+      POSTGRES_DB: ssdb
+    ports: ["5434:5432"]
+    volumes: ["ssdb_share_1:/var/lib/postgresql/data"]
+
+  ssdb-share-2:
+    container_name: ssdb-share-2
+    image: ghcr.io/secretskydb/ssdbpg:${SSDB_VERSION:-0.1.0}
+    environment:
+      POSTGRES_USER: ssdb
+      POSTGRES_PASSWORD: ${SSDB_SHARE_PWD}
+      POSTGRES_DB: ssdb
+    ports: ["5435:5432"]
+    volumes: ["ssdb_share_2:/var/lib/postgresql/data"]
+
+  ssdb-share-3:
+    container_name: ssdb-share-3
+    image: ghcr.io/secretskydb/ssdbpg:${SSDB_VERSION:-0.1.0}
+    environment:
+      POSTGRES_USER: ssdb
+      POSTGRES_PASSWORD: ${SSDB_SHARE_PWD}
+      POSTGRES_DB: ssdb
+    ports: ["5436:5432"]
+    volumes: ["ssdb_share_3:/var/lib/postgresql/data"]
+
+  # ----------------------------------------------------------------
+  # ssdb-proxy — speaks the Postgres wire protocol, fans queries to
+  # all 3 shareholders, performs Lagrange reconstruction client-side.
+  # Listens on :55432 (matches `ssdb/sql/src/ssdb_pg_proxy.py`).
+  # ----------------------------------------------------------------
+  ssdb-proxy:
+    container_name: ssdb-proxy
+    image: ghcr.io/secretskydb/ssdb-proxy:${SSDB_VERSION:-0.1.0}
+    depends_on: [ssdb-share-1, ssdb-share-2, ssdb-share-3]
+    environment:
+      SSDB_SHARES:    "ssdb-share-1:5432,ssdb-share-2:5432,ssdb-share-3:5432"
+      SSDB_THRESHOLD: "3"
+    ports: ["55432:55432"]
+
+  # ----------------------------------------------------------------
+  # ssdb-sql-rag — pure embed + secret-shared top-k.
+  # NO LLM, NO prompt assembly. Speaks /api/v1/{health,setup,ingest,retrieve}.
+  # Source: ssdb/sql/services/rag/ (Dockerfile in that folder).
+  # ----------------------------------------------------------------
+  ssdb-sql-rag:
+    container_name: ssdb-sql-rag
+    image: ghcr.io/secretskydb/ssdb-sql-rag:${SSDB_VERSION:-0.1.0}
+    depends_on: [ssdb-proxy]
+    environment:
+      # ----- SSDB proxy (Postgres protocol on :55432) -----
+      SSDB_HOST: "ssdb-proxy"
+      SSDB_PROXY_PORT: "55432"
+      SSDB_DB:   "db"
+      SSDB_USER: "user"
+      SSDB_PASSWORD: "pass"
+      EMBEDDING_DIM: "${APP_EMBEDDINGS_DIMENSIONS:-1024}"
+      EMBEDDING_SCALE: "1000000"
+
+      # ----- Embedder ------------------------------------
+      # In production we point at the same NeMo embedding NIM the
+      # rag-server uses, so ingestion + retrieval embed identically.
+      EMBED_BACKEND: "nim"
+      EMBED_HOST:    "${APP_EMBEDDINGS_SERVERURL:-https://integrate.api.nvidia.com/v1}"
+      EMBED_MODEL:   "${APP_EMBEDDINGS_MODELNAME:-nvidia/nv-embedqa-e5-v5}"
+      EMBED_API_KEY: "${NVIDIA_API_KEY:?set NVIDIA_API_KEY in .env}"
+
+      # ----- Service defaults ----------------------------
+      INGEST_CHUNK_CHARS:   "800"
+      INGEST_CHUNK_OVERLAP: "120"
+      RETRIEVE_K:           "8"
+      SSDB_RAG_ALLOW_RESET: "0"
+    ports:
+      - "8080:8080"   # /api/v1/{health,status,setup,ingest,retrieve}
+
+volumes:
+  ssdb_share_1: {}
+  ssdb_share_2: {}
+  ssdb_share_3: {}

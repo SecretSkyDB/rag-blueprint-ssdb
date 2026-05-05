@@ -1,0 +1,37 @@
+name: rebase-upstream
+
+on:
+  schedule:
+    - cron: "0 6 * * 1"      # Monday 06:00 UTC
+  workflow_dispatch: {}
+
+jobs:
+  rebase:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0, token: ${{ secrets.REBASE_PAT }} }
+      - name: Configure git
+        run: |
+          git config user.email "ci@secretskydb.com"
+          git config user.name  "secretskydb-ci"
+      - name: Pull upstream
+        run: |
+          git remote add upstream https://github.com/NVIDIA-AI-Blueprints/rag.git
+          git fetch upstream
+          git checkout -b rebase/upstream-$(date +%F)
+          git rebase upstream/main || (
+            echo "Conflict; opening PR for manual resolution"
+            git rebase --abort
+            git merge upstream/main --no-ff -m "merge upstream (conflict, hand-resolve)"
+          )
+          git push origin HEAD
+      - uses: peter-evans/create-pull-request@v6
+        with:
+          title: "Rebase on NVIDIA-AI-Blueprints/rag (weekly)"
+          body: |
+            Auto-generated weekly upstream rebase.
+
+            Review for conflicts in the modified files (workflow.yml,
+            docker-compose.yaml, vector_store.py, requirements.txt).
+            See `UPSTREAM.md` for the catalogued diff.

@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>SSDB RAG — chat</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <style>
+    :root {
+      --bg:#0e1116; --panel:#161b22; --fg:#e6edf3; --muted:#8b949e;
+      --accent:#2f81f7; --good:#3fb950; --warn:#d29922; --bad:#f85149;
+      --border:#30363d; --code:#1f242c;
+    }
+    * { box-sizing: border-box; }
+    body { margin:0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Inter", sans-serif;
+           background:var(--bg); color:var(--fg); }
+    header { padding:12px 20px; border-bottom:1px solid var(--border); display:flex; align-items:center; gap:12px; }
+    header h1 { margin:0; font-size:16px; font-weight:600; }
+    header .pill { font-size:11px; padding:2px 8px; border-radius:999px; background:var(--code); color:var(--muted); }
+    main { max-width:920px; margin:0 auto; padding:20px; }
+    .row { display:flex; gap:8px; margin-bottom:14px; }
+    textarea { flex:1; background:var(--panel); color:var(--fg); border:1px solid var(--border); border-radius:8px;
+               padding:10px 12px; font:inherit; font-size:14px; resize:vertical; min-height:64px; }
+    button { padding:10px 16px; border-radius:8px; border:none; background:var(--accent); color:white;
+             font-weight:600; cursor:pointer; }
+    button:disabled { opacity:0.6; cursor:wait; }
+    .bubble { background:var(--panel); border:1px solid var(--border); border-radius:10px; padding:14px 16px;
+              margin-bottom:14px; }
+    .bubble h3 { margin:0 0 6px; font-size:13px; font-weight:600; color:var(--muted); text-transform:uppercase;
+                 letter-spacing:0.04em; }
+    .answer { white-space:pre-wrap; line-height:1.55; }
+    .answer strong { color:var(--accent); }
+    .answer code { background:var(--code); padding:1px 5px; border-radius:4px; font-size:12.5px; }
+    .citations { font-size:12.5px; color:var(--muted); }
+    .citations div { padding:3px 0; }
+    .err { color:var(--bad); }
+    footer { color:var(--muted); font-size:11.5px; padding:14px 20px; text-align:center; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>SSDB RAG</h1>
+    <span class="pill">backend: {{ backend }}</span>
+    <span class="pill">{{ backend_url }}</span>
+    <span class="pill">collection: {{ collection }}</span>
+  </header>
+
+  <main>
+    <form id="ask">
+      <div class="row">
+        <textarea id="q" placeholder="Ask a question about the corpus…" autofocus></textarea>
+        <button id="go" type="submit">Ask</button>
+      </div>
+    </form>
+
+    <div id="out"></div>
+  </main>
+
+  <footer>
+    Pure-retrieval mode shows top-k chunks straight from <code>/api/v1/retrieve</code>.
+    Toolkit mode hits <code>/generate</code> on the agent and shows the LLM answer.
+  </footer>
+
+  <script>
+    const out = document.getElementById('out');
+    const form = document.getElementById('ask');
+    const ta = document.getElementById('q');
+    const btn = document.getElementById('go');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const q = ta.value.trim();
+      if (!q) return;
+      btn.disabled = true; btn.textContent = '…';
+
+      const userBubble = document.createElement('div');
+      userBubble.className = 'bubble';
+      userBubble.innerHTML = '<h3>Question</h3><div class="answer"></div>';
+      userBubble.querySelector('.answer').textContent = q;
+      out.prepend(userBubble);
+
+      try {
+        const r = await fetch('/api/ask', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ question: q }),
+        });
+        const data = await r.json();
+        const b = document.createElement('div');
+        b.className = 'bubble';
+        if (!data.ok) {
+          b.innerHTML = `<h3>Error</h3><div class="answer err">${data.error || 'unknown'}</div>`;
+        } else {
+          let html = `<h3>Answer (${data.backend})</h3>`;
+          html += `<div class="answer">${renderMd(data.answer || '')}</div>`;
+          if (data.citations && data.citations.length) {
+            html += '<h3 style="margin-top:14px;">Sources</h3><div class="citations">';
+            for (const c of data.citations) {
+              html += `<div>${c.id || ''} ${escape(c.title || '(untitled)')} — <code>${escape(c.source || '')}</code></div>`;
+            }
+            html += '</div>';
+          }
+          b.innerHTML = html;
+        }
+        out.prepend(b);
+      } catch (e) {
+        const b = document.createElement('div');
+        b.className = 'bubble';
+        b.innerHTML = `<h3>Error</h3><div class="answer err">${escape(e.message || e)}</div>`;
+        out.prepend(b);
+      } finally {
+        btn.disabled = false; btn.textContent = 'Ask';
+        ta.value = ''; ta.focus();
+      }
+    });
+
+    function escape(s) {
+      return String(s).replace(/[&<>]/g, m => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;' }[m]));
+    }
+    function renderMd(s) {
+      // Tiny: bold + inline code + paragraphs.
+      return escape(s)
+        .replace(/`([^`]+)`/g, '<code>$1</code>')
+        .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+        .replace(/\n\n/g, '<br><br>')
+        .replace(/\n/g, '<br>');
+    }
+  </script>
+</body>
+</html>

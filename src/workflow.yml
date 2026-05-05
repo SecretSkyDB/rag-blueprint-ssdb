@@ -1,0 +1,42 @@
+####################################################################
+# rag-blueprint-ssdb — single-tier (SSDB-only) workflow
+#
+# Diff vs upstream NVIDIA RAG Blueprint: one retriever block.
+# Milvus → SSDB; everything else (LLM NIM, reranker, agent, UI) is
+# inherited unchanged.
+####################################################################
+
+retrievers:
+  default_kb:
+    _type: ssdb_retriever
+    # Points at the ssdb-sql-rag service (see blueprint/deploy/compose/
+    # ssdb-overlay.yaml). The plug-in appends /api/v1/retrieve to this base.
+    uri: http://ssdb-sql-rag:8080
+    collection_name: nv_rag_documents
+    top_k: 8
+    description: >
+      Encrypted nearest-neighbor retrieval over the SecretSkyDB-protected
+      corpus. Vectors are post-quantum secret-shared across three
+      independent Postgres + ssdbpgvector shareholders. Use this for any
+      question grounded in the corpus.
+
+functions:
+  search_kb:
+    _type: nat.tool.retriever
+    retriever: default_kb
+    description: >
+      Search the secure corpus (SecretSkyDB) for documents relevant to the
+      user's question. Returns the top_k passages with citations.
+
+llms:
+  my_llm:
+    # Pass-through reference to the LLM NIM declared in the upstream
+    # Blueprint compose file (nim-llm-ms on host port 8999).
+    # Defaults match NVIDIA-AI-Blueprints/rag v2.5.0.
+    _type: nim
+    model_name: nvidia/llama-3.3-nemotron-super-49b-v1.5
+
+workflow:
+  _type: react_agent
+  llm: my_llm
+  tool_names: [search_kb]

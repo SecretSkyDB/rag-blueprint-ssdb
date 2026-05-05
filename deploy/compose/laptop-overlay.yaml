@@ -1,0 +1,57 @@
+####################################################################
+# Laptop-friendly overlay (no NIMs required).
+#
+# Use this when an NVIDIA reviewer wants to try the chain on a
+# MacBook before standing up GPUs:
+#
+#   docker compose \
+#     -f deploy/compose/ssdb-overlay.yaml \
+#     -f deploy/compose/laptop-overlay.yaml \
+#     up -d
+#   open http://localhost:8501   (fallback chat UI)
+#
+# Differences from the production stack:
+#   * No NIMs: ssdb-sql-rag uses Ollama (mxbai-embed-large) for embeddings.
+#   * No upstream rag-server / rag-frontend: too memory-hungry on a laptop.
+#   * The fallback UI calls the toolkit's `nat serve` REST endpoint (8000),
+#     which runs the workflow.yml exactly as the production rag-server would.
+####################################################################
+
+services:
+
+  # Override ssdb-sql-rag's embedder backend.
+  ssdb-sql-rag:
+    environment:
+      EMBED_BACKEND: "ollama"
+      EMBED_HOST:    "http://host.docker.internal:11434"
+      EMBED_MODEL:   "mxbai-embed-large"
+      EMBED_API_KEY: ""
+
+  # The toolkit, served standalone (no upstream rag-server image needed).
+  # `nat serve --config_file=/workflows/workflow.yml --port 8000`
+  toolkit:
+    container_name: toolkit
+    image: ghcr.io/secretskydb/rag-blueprint-ssdb:${SSDB_VERSION:-0.1.0}
+    depends_on: [ssdb-sql-rag]
+    environment:
+      NVIDIA_API_KEY: ${NVIDIA_API_KEY:-}
+      OLLAMA_HOST:    "http://host.docker.internal:11434"
+    volumes:
+      - ../../src:/workflows:ro
+    command: >
+      nat serve
+        --config_file=/workflows/workflow.yml
+        --host 0.0.0.0
+        --port 8000
+    ports:
+      - "8000:8000"
+
+  # Minimal Flask + HTML chat UI. Source: blueprint/examples/fallback_ui/.
+  fallback-ui:
+    container_name: fallback-ui
+    image: ghcr.io/secretskydb/rag-blueprint-ssdb-fallback-ui:${SSDB_VERSION:-0.1.0}
+    depends_on: [toolkit]
+    environment:
+      TOOLKIT_URL: "http://toolkit:8000"
+    ports:
+      - "8501:8501"

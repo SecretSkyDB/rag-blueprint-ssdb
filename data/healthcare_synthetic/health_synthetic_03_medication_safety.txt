@@ -1,0 +1,13 @@
+SYNTHETIC MEDICATION SAFETY SNIPPET — DEMONSTRATION DATA ONLY. NOT MEDICAL ADVICE.
+
+General concepts sometimes covered in public health handouts:
+- Use one primary pharmacy so interactions can be screened in one system.
+- Keep a written list in your wallet, including over-the-counter drugs and supplements.
+- Do not share prescription medications; doses are individualized.
+- Some medications require taking with food; others on an empty stomach—follow the label and prescriber instructions.
+- When starting something new, ask: what is it for, how long, what side effects to watch for, and what to do if a dose is missed.
+- Return unused drugs through approved take-back programs when available.
+
+Fictional example: Patient A (composite, not a real person) was advised to set phone reminders for a twice-daily antihypertensive after missing doses caused inconsistent readings in a self-monitoring log.
+
+Source tag: synthetic-med-safety-v1

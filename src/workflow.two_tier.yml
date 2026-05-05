@@ -1,0 +1,49 @@
+####################################################################
+# rag-blueprint-ssdb — two-tier (Milvus public + SSDB regulated)
+#
+# Same agent, two retrievers wired by data classification. The agent
+# picks based on the descriptions. Public corpus stays in Milvus
+# (cuVS / CAGRA, GPU-fast); regulated corpus lives in SSDB
+# (encrypted-at-rest-and-in-compute).
+####################################################################
+
+retrievers:
+  public_kb:
+    _type: milvus_retriever
+    uri: http://milvus:19530
+    embedding_model: nv-embedqa-e5-v5
+    collection_name: public_docs
+    top_k: 8
+    description: >
+      Public knowledge base served from Milvus.
+
+  regulated_kb:
+    _type: ssdb_retriever
+    # ssdb-sql-rag service (see blueprint/deploy/compose/ssdb-overlay.yaml).
+    uri: http://ssdb-sql-rag:8080
+    collection_name: phi
+    top_k: 4
+    description: >
+      Encrypted nearest-neighbor over the SecretSkyDB-protected PHI
+      corpus. Use this whenever the question references patients, PHI,
+      PII, or any data subject to HIPAA / GDPR.
+
+functions:
+  search_public:
+    _type: nat.tool.retriever
+    retriever: public_kb
+    description: Public knowledge base (Milvus, plaintext).
+  search_regulated:
+    _type: nat.tool.retriever
+    retriever: regulated_kb
+    description: Regulated/PHI corpus (SSDB, encrypted at rest and in compute).
+
+llms:
+  my_llm:
+    _type: nim
+    model_name: nvidia/llama-3.3-nemotron-super-49b-v1.5
+
+workflow:
+  _type: react_agent
+  llm: my_llm
+  tool_names: [search_public, search_regulated]

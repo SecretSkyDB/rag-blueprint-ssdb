@@ -1,0 +1,14 @@
+SYNTHETIC WELLNESS SCREENING CHECKLIST — DEMONSTRATION DATA ONLY. NOT A REAL PROGRAM.
+
+Fictional annual wellness visit checklist (composite):
+- Review height, weight, and trend over prior years.
+- Blood pressure in both arms if indicated by local protocol.
+- Fasting lipids and glucose for adults per risk-based schedules (illustration only).
+- Age-appropriate cancer screening discussion (e.g. colorectal, breast, lung in smokers)—topics vary by region and history.
+- Immunization status: influenza seasonally, tetanus booster intervals, and other vaccines by risk and age.
+- Mental health: brief screening questionnaires may be used in some clinics (PHQ-2/GAD-2 style examples in literature).
+- Lifestyle: physical activity minutes per week, diet pattern, sleep hours, stressors.
+
+Fictional clinic "RiverValley Demo Clinic" (not real) offers reminder letters 30 days before due dates in this synthetic narrative.
+
+Source tag: synthetic-wellness-checklist-v1

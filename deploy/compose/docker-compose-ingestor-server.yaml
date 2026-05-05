@@ -1,0 +1,29 @@
+####################################################################
+# rag-blueprint-ssdb — ingestor server overlay.
+#
+# Mirrors NVIDIA-AI-Blueprints/rag v2.5.0's
+# `deploy/compose/docker-compose-ingestor-server.yaml`, with
+# APP_VECTORSTORE_URL pointed at our SSDB-backed `ssdb-sql-rag`
+# service so the ingestion pipeline writes ciphertext shares.
+####################################################################
+
+services:
+
+  ingestor-server:
+    container_name: ingestor-server
+    image: nvcr.io/nvidia/blueprint/ingestor-server:${RAG_VERSION:-2.5.0}
+    ports:
+      - "8082:8082"
+    environment:
+      # ----- Embedder (must match what rag-server uses for retrieval) --------
+      APP_EMBEDDINGS_MODELNAME:   ${APP_EMBEDDINGS_MODELNAME:-nvidia/nv-embedqa-e5-v5}
+      APP_EMBEDDINGS_SERVERURL:   ${APP_EMBEDDINGS_SERVERURL:-}
+      APP_EMBEDDINGS_DIMENSIONS:  ${APP_EMBEDDINGS_DIMENSIONS:-1024}
+      NVIDIA_API_KEY:             ${NVIDIA_API_KEY:?set NVIDIA_API_KEY in .env}
+
+      # ----- Vector store: SSDB instead of Milvus ----------------------------
+      APP_VECTORSTORE_NAME: ssdb
+      APP_VECTORSTORE_URL:  http://ssdb-sql-rag:8080
+      APP_COLLECTION_NAME:  ${APP_COLLECTION_NAME:-nv_rag_documents}
+    depends_on:
+      - ssdb-sql-rag
