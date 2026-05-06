@@ -17,7 +17,10 @@ RUN pip install --no-cache-dir -r /app/requirements.txt
 COPY app.py        /app/app.py
 COPY templates/    /app/templates/
 
-ENV PORT=3000
-EXPOSE 3000
+# Aligned with the laptop-overlay's host->container port mapping
+# (8501:8501) so `open http://localhost:8501` reaches us. app.py reads
+# $PORT, so override at runtime if you bind differently.
+ENV PORT=8501
+EXPOSE 8501
 
 CMD ["python", "app.py"]

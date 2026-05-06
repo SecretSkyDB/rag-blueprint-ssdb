@@ -7,19 +7,30 @@
 #   docker compose \
 #     -f deploy/compose/ssdb-overlay.yaml \
 #     -f deploy/compose/laptop-overlay.yaml \
-#     up -d
+#     up -d --build
 #   open http://localhost:8501   (fallback chat UI)
 #
 # Differences from the production stack:
 #   * No NIMs: ssdb-sql-rag uses Ollama (mxbai-embed-large) for embeddings.
+#   * No NIM LLM: the toolkit uses Ollama (llama3.1:8b) for the chat
+#     completion via workflow.laptop.yml.
 #   * No upstream rag-server / rag-frontend: too memory-hungry on a laptop.
 #   * The fallback UI calls the toolkit's `nat serve` REST endpoint (8000),
-#     which runs the workflow.yml exactly as the production rag-server would.
+#     which runs workflow.laptop.yml and answers grounded on SSDB-retrieved
+#     passages.
+#
+# Pre-reqs on the host:
+#   * Docker Desktop with >=6 GB RAM allocated.
+#   * `ollama serve &` running on the host (port 11434).
+#   * `ollama pull mxbai-embed-large`     (for ssdb-sql-rag embeddings)
+#   * `ollama pull llama3.1:8b`           (for the toolkit's LLM step)
 ####################################################################
 
 services:
 
-  # Override ssdb-sql-rag's embedder backend.
+  # Override ssdb-sql-rag's embedder backend to Ollama.
+  # host.docker.internal works on Docker Desktop (Mac/Win) and on Linux
+  # since 20.10 with --add-host=host.docker.internal:host-gateway.
   ssdb-sql-rag:
     environment:
       EMBED_BACKEND: "ollama"
@@ -28,30 +39,47 @@ services:
       EMBED_API_KEY: ""
 
   # The toolkit, served standalone (no upstream rag-server image needed).
-  # `nat serve --config_file=/workflows/workflow.yml --port 8000`
+  # Built from blueprint/deploy/toolkit/Dockerfile so a reviewer cloning
+  # only the public rag-blueprint-ssdb repo can `up --build`.
   toolkit:
     container_name: toolkit
+    build:
+      context: ../..              # blueprint repo root
+      dockerfile: deploy/toolkit/Dockerfile
     image: ghcr.io/secretskydb/rag-blueprint-ssdb:${SSDB_VERSION:-0.1.0}
     depends_on: [ssdb-sql-rag]
     environment:
+      # Optional: kept for parity with Tier B, ignored by workflow.laptop.yml.
       NVIDIA_API_KEY: ${NVIDIA_API_KEY:-}
-      OLLAMA_HOST:    "http://host.docker.internal:11434"
+      # The Ollama LLM is reached from inside the toolkit container at
+      # this URL; workflow.laptop.yml's `llms.my_llm.api_base` references
+      # ${OLLAMA_BASE_URL} via env interpolation.
+      OLLAMA_BASE_URL: "http://host.docker.internal:11434/v1"
     volumes:
       - ../../src:/workflows:ro
     command: >
       nat serve
-        --config_file=/workflows/workflow.yml
+        --config_file=/workflows/workflow.laptop.yml
         --host 0.0.0.0
         --port 8000
     ports:
       - "8000:8000"
 
   # Minimal Flask + HTML chat UI. Source: blueprint/examples/fallback_ui/.
+  # Built from that dir's Dockerfile so it ships with the public repo.
   fallback-ui:
     container_name: fallback-ui
+    build:
+      context: ../../examples/fallback_ui
+      dockerfile: Dockerfile
     image: ghcr.io/secretskydb/rag-blueprint-ssdb-fallback-ui:${SSDB_VERSION:-0.1.0}
     depends_on: [toolkit]
     environment:
-      TOOLKIT_URL: "http://toolkit:8000"
+      # The UI reads AIQ_RUNNER_URL (toolkit-mode) and SSDB_RAG_URL
+      # (fallback retrieval-only mode). Setting AIQ_RUNNER_URL routes
+      # the chat through the toolkit -> agent -> SSDB -> LLM chain.
+      AIQ_RUNNER_URL: "http://toolkit:8000"
+      SSDB_RAG_URL:   "http://ssdb-sql-rag:8080"
+      SSDB_RAG_COLLECTION: "${APP_COLLECTION_NAME:-nv_rag_documents}"
     ports:
       - "8501:8501"

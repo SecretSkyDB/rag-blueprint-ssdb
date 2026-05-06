@@ -1,0 +1,58 @@
+####################################################################
+# rag-blueprint-ssdb — laptop-tier (Ollama LLM + SSDB) workflow.
+#
+# Diff vs `workflow.yml` (production):
+#   * llms.my_llm uses Ollama via its OpenAI-compatible endpoint
+#     (https://ollama.com/blog/openai-compatibility) instead of NIM.
+#     Reviewers don't need an NVIDIA_API_KEY for Tier A.
+#
+# Everything else is identical: same retrievers block (SSDB), same
+# ReAct agent, same `search_kb` tool. Swapping the workflow file is
+# the single knob that takes the laptop tier off the cloud LLM.
+#
+# Used by the laptop overlay's toolkit container:
+#   nat serve --config_file=/workflows/workflow.laptop.yml ...
+####################################################################
+
+retrievers:
+  default_kb:
+    _type: ssdb_retriever
+    # Points at the ssdb-sql-rag service in ssdb-overlay.yaml. The
+    # plug-in (https://pypi.org/project/nat-retriever-ssdb/) appends
+    # /api/v1/retrieve to this base.
+    uri: http://ssdb-sql-rag:8080
+    collection_name: nv_rag_documents
+    top_k: 8
+    description: >
+      Encrypted nearest-neighbor retrieval over the SecretSkyDB-protected
+      corpus. Vectors are post-quantum secret-shared across three
+      independent Postgres + ssdbpgvector shareholders. Use this for any
+      question grounded in the corpus.
+
+functions:
+  search_kb:
+    _type: nat.tool.retriever
+    retriever: default_kb
+    description: >
+      Search the secure corpus (SecretSkyDB) for documents relevant to the
+      user's question. Returns the top_k passages with citations.
+
+llms:
+  my_llm:
+    # OpenAI-compatible client pointed at the host's Ollama daemon. The
+    # toolkit container reaches the host via host.docker.internal:11434
+    # (set in laptop-overlay.yaml as OLLAMA_BASE_URL).
+    #
+    # Pull the model once on the host:
+    #   ollama pull llama3.1:8b
+    _type: openai
+    api_base: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434/v1}
+    api_key: ollama          # Ollama ignores the value; field is required.
+    model_name: llama3.1:8b
+    temperature: 0.0
+    max_tokens: 1024
+
+workflow:
+  _type: react_agent
+  llm: my_llm
+  tool_names: [search_kb]

@@ -98,12 +98,15 @@ services:
       EMBEDDING_SCALE: "1000000"
 
       # ----- Embedder ------------------------------------
-      # In production we point at the same NeMo embedding NIM the
-      # rag-server uses, so ingestion + retrieval embed identically.
+      # Default points at the same NeMo embedding NIM the rag-server
+      # uses, so ingestion + retrieval embed identically. The laptop
+      # overlay (laptop-overlay.yaml) overrides EMBED_BACKEND=ollama so
+      # Tier A runs without an NVIDIA_API_KEY; we use :- not :? on the
+      # api key so the file parses cleanly when NVIDIA_API_KEY is unset.
       EMBED_BACKEND: "nim"
       EMBED_HOST:    "${APP_EMBEDDINGS_SERVERURL:-https://integrate.api.nvidia.com/v1}"
       EMBED_MODEL:   "${APP_EMBEDDINGS_MODELNAME:-nvidia/nv-embedqa-e5-v5}"
-      EMBED_API_KEY: "${NVIDIA_API_KEY:?set NVIDIA_API_KEY in .env}"
+      EMBED_API_KEY: "${NVIDIA_API_KEY:-}"
 
       # ----- Service defaults ----------------------------
       INGEST_CHUNK_CHARS:   "800"
