@@ -1,13 +1,28 @@
 # Blueprint exercisers
 
-Four ways to drive the workflow, easiest first. Pick by intent.
+Five ways to drive the workflow, easiest first. Pick by intent.
 
 | Goal | Use |
 |---|---|
+| 60-second plug-in × bridge wiring check, no Docker, no LLM | (0) [`cross_component_smoke/`](cross_component_smoke/) |
 | Smoke-test in CI without a UI | (1) `nat_run.sh` |
 | Demo on a laptop, no NIMs, no NVIDIA key | (2) fallback UI + `laptop-overlay.yaml` |
 | NVIDIA reviewer demo with the reference chat UI | (3) `rag-frontend` (upstream image, default in `docker-compose-rag-server.yaml`) |
 | Probe `/api/v1/retrieve` raw, for debugging | `curl` |
+
+## 0. `cross_component_smoke/` — fastest possible "does it actually wire up?" check
+
+```bash
+cd examples/cross_component_smoke
+./run_demo.sh                 # mock bridge, no Docker, ~60 s
+```
+
+Installs `nat-retriever-ssdb` from PyPI, starts an in-process mock bridge,
+ingests `../../data/healthcare_synthetic/`, and runs two known-answer
+queries through the plug-in. Useful as a CI smoke test (mocks token
+overlap, doesn't need a real embedder) and as the on-ramp to the heavier
+flows below. See
+[`cross_component_smoke/README.md`](cross_component_smoke/README.md).
 
 ## 1. `nat_run.sh` — toolkit CLI exerciser (canonical CI smoke test)
 
@@ -22,9 +37,9 @@ runs the ReAct agent loop, and prints the answer.
 
 Requires:
 
-* `pip install nvidia-nat~=1.0` and `pip install -e ../nat-retriever-ssdb`
-  (editable install of the sibling repo; replaced by `pip install
-  nat-retriever-ssdb` once public v0.1.0 ships at design-partner kickoff)
+* `pip install nvidia-nat~=1.0` and
+  `pip install nat-retriever-ssdb` (the plug-in is published Apache-2.0;
+  see <https://pypi.org/project/nat-retriever-ssdb/>);
 * the SSDB stack reachable at `http://ssdb-sql-rag:8080` (or set `SSDB_RAG_URL`
   to override the workflow's `uri`);
 * an LLM the toolkit can call — either a NIM endpoint, NVIDIA-hosted via

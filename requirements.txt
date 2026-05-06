@@ -6,12 +6,7 @@
 # https://docs.nvidia.com/nemo/agent-toolkit/latest/get-started/quick-start.html
 nvidia-nat~=1.0
 
-# The `nat-retriever-ssdb` plug-in is currently developed in the sibling repo
-# at ../nat-retriever-ssdb/. Until its public v0.1.0 ships on PyPI at the
-# design-partner kickoff, install it editable from there:
-#
-#   pip install -e ../nat-retriever-ssdb
-#
-# After v0.1.0 ships, replace the comment above with a real pin, e.g.:
-#
-#   nat-retriever-ssdb~=0.1
+# The SSDB retriever plug-in. Apache-2.0; published on PyPI:
+# https://pypi.org/project/nat-retriever-ssdb/
+# Source: https://github.com/SecretSkyDB/nat-retriever-ssdb
+nat-retriever-ssdb~=0.2

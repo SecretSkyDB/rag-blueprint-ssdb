@@ -1,0 +1,32 @@
+name: smoke
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  schedule:
+    # Daily check that the published `nat-retriever-ssdb` wheel still wires
+    # together with this blueprint's workflow.yml + corpus. Catches PyPI-side
+    # regressions even when no commit has happened locally.
+    - cron: "17 7 * * *"
+
+jobs:
+  cross-component-smoke:
+    name: cross-component plug-in smoke (mock bridge)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.11" }
+
+      - name: Install curl + jq
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq curl jq
+
+      - name: Run cross_component_smoke (mock bridge, ~30 s)
+        working-directory: examples/cross_component_smoke
+        run: ./run_demo.sh
+
+      - name: Print mock bridge log on failure
+        if: failure()
+        working-directory: examples/cross_component_smoke
+        run: cat mock_bridge.log || true

@@ -19,7 +19,7 @@ stays trivial.
 | `src/workflow.yml` | **MODIFIED** | One block: `_type: ssdb_retriever`, `uri: http://ssdb-sql-rag:8080`. LLM block defaults to `nvidia/llama-3.3-nemotron-super-49b-v1.5` per change-model.html. |
 | `src/workflow.two_tier.yml` | **NEW** | Demonstrates Milvus public + SSDB regulated under one ReAct agent. |
 | `src/chains/vector_store.py` | **MODIFIED** | Selects `ssdb_retriever` when `VECTOR_STORE=ssdb`. |
-| `requirements.txt` | **MODIFIED** | Adds `nvidia-nat~=1.0` (the renamed `aiqtoolkit`). The `nat-retriever-ssdb` plug-in is installed editable from the sibling repo today (`pip install -e ../nat-retriever-ssdb`); a PyPI line replaces it once public v0.1.0 ships. |
+| `requirements.txt` | **MODIFIED** | Adds `nvidia-nat~=1.0` (the renamed `aiqtoolkit`) and `nat-retriever-ssdb~=0.2` (Apache-2.0, on PyPI: <https://pypi.org/project/nat-retriever-ssdb/>). |
 | `examples/nat_run.sh` | **NEW** | Toolkit-CLI exerciser (`nat run --config_file=...`) of the workflow. Canonical CI smoke test. |
 | `examples/fallback_ui/` | **NEW** | A 150-line HTML+Flask chat UI we control; shipped as the laptop-tier UI. |
 | `examples/README.md` | **NEW** | Documents the four exerciser tiers (mock / laptop / full / CLI). |

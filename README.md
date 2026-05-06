@@ -73,7 +73,10 @@ The four layers each do one job:
 
 ## Quick start (the green-field-engineer path)
 
-> Three tiers; full step-by-step is [`docs/RUNBOOK_NVIDIA.md`](../../docs/RUNBOOK_NVIDIA.md).
+> Three Docker tiers; full step-by-step is
+> [`docs/RUNBOOK_NVIDIA.md`](../../docs/RUNBOOK_NVIDIA.md). For an even
+> shorter "is anything wired up?" smoke test that needs neither Docker
+> nor NIMs, see [`examples/cross_component_smoke/`](examples/cross_component_smoke/) — runs in ~60 s.
 
 ### Tier A — laptop only (~10 min, no GPU, no NVIDIA key)
 
@@ -107,13 +110,14 @@ open http://localhost:8090                               # NVIDIA's reference UI
 
 ```bash
 pip install nvidia-nat~=1.0
-pip install -e ../nat-retriever-ssdb        # editable install of the sibling repo
+pip install nat-retriever-ssdb              # https://pypi.org/project/nat-retriever-ssdb/
 SSDB_RAG_URL=http://localhost:8080 \
   ./examples/nat_run.sh "Telehealth FAQ: how do I prepare?"
 ```
 
-> Once the plug-in's public v0.1.0 ships at the design-partner kickoff,
-> the second line becomes `pip install nat-retriever-ssdb`.
+> Plug-in developers can substitute the second line with
+> `pip install -e ../nat-retriever-ssdb` to get an editable install of a
+> sibling checkout.
 
 `nat run --config_file=src/workflow.yml --input "..."` is the toolkit's
 own way to drive a workflow.
@@ -141,10 +145,11 @@ We track this in [`UPSTREAM.md`](UPSTREAM.md). Summary:
   names + ports verbatim; we only override the two `APP_VECTORSTORE_*`
   env vars.
 * **Workflow:** one `_type: ssdb_retriever` block.
-* **Requirements:** `+ nat-retriever-ssdb` (installed editable from the
-  sibling repo today; from PyPI at v0.1.0 kickoff).
-* **Examples:** `examples/nat_run.sh` (toolkit CLI exerciser),
-  `examples/fallback_ui/` (a chat UI we control for the laptop tier).
+* **Requirements:** `+ nat-retriever-ssdb` (from PyPI:
+  <https://pypi.org/project/nat-retriever-ssdb/>).
+* **Examples:** `examples/cross_component_smoke/` (no-Docker plug-in smoke
+  test), `examples/nat_run.sh` (toolkit CLI exerciser), `examples/fallback_ui/`
+  (a chat UI we control for the laptop tier).
 
 Everything else inherits unchanged. Monthly rebases against upstream
 v2.6, v2.7, ... should be trivial.
@@ -157,9 +162,8 @@ v2.6, v2.7, ... should be trivial.
   `nemo_trunk/blueprint/`. Will be split into the public Apache-2.0
   repo `SecretSkyDB/rag-blueprint-ssdb` at the design-partner kickoff.
 * Tracks: <https://github.com/NVIDIA-AI-Blueprints/rag>
-* Plug-in: <https://pypi.org/project/nat-retriever-ssdb/> *(name reserved;
-  functional v0.1.0 ships at kickoff — local sibling at
-  `../nat-retriever-ssdb/` until then)*.
+* Plug-in: <https://pypi.org/project/nat-retriever-ssdb/> *(Apache-2.0
+  source: <https://github.com/SecretSkyDB/nat-retriever-ssdb>)*.
 
 ## Verified upstream pinning (May 2026)
 

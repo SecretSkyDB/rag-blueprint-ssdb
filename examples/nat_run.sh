@@ -11,9 +11,9 @@
 #
 # Requires:
 #   pip install nvidia-nat~=1.0
-#   pip install -e ../nat-retriever-ssdb       # editable install of sibling repo
-#                                              # (replaced by `pip install nat-retriever-ssdb`
-#                                              #  once public v0.1.0 ships at kickoff)
+#   pip install nat-retriever-ssdb              # https://pypi.org/project/nat-retriever-ssdb/
+#                                              # (use `-e ../nat-retriever-ssdb` when
+#                                              #  developing the plug-in alongside)
 #   the SSDB stack reachable at $SSDB_RAG_URL (default: http://ssdb-sql-rag:8080)
 #   an LLM the toolkit can talk to (NIMs or your own llms: block in workflow.yml)
 #
@@ -35,10 +35,10 @@ if ! command -v "$NAT" >/dev/null 2>&1; then
 !! `nat` not found. Install the NeMo Agent Toolkit and the SSDB plug-in:
 
      pip install nvidia-nat~=1.0
-     pip install -e ../nat-retriever-ssdb
+     pip install nat-retriever-ssdb
 
-   (Once public v0.1.0 of the plug-in ships at design-partner kickoff,
-    the second line becomes `pip install nat-retriever-ssdb`.)
+   (For plug-in development, replace the second line with
+    `pip install -e ../nat-retriever-ssdb`.)
 
    Then re-run.
 
