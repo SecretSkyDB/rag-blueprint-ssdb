@@ -13,44 +13,148 @@
     * { box-sizing: border-box; }
     body { margin:0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Inter", sans-serif;
            background:var(--bg); color:var(--fg); }
-    header { padding:12px 20px; border-bottom:1px solid var(--border); display:flex; align-items:center; gap:12px; }
-    header h1 { margin:0; font-size:16px; font-weight:600; }
+    header { padding:12px 20px; border-bottom:1px solid var(--border); display:flex; align-items:center;
+             gap:8px; flex-wrap:wrap; }
+    header h1 { margin:0 8px 0 0; font-size:16px; font-weight:600; }
     header .pill { font-size:11px; padding:2px 8px; border-radius:999px; background:var(--code); color:var(--muted); }
+    header select { background:var(--code); color:var(--fg); border:1px solid var(--border); border-radius:6px;
+                    padding:2px 6px; font-size:11px; }
     main { max-width:920px; margin:0 auto; padding:20px; }
-    .row { display:flex; gap:8px; margin-bottom:14px; }
-    textarea { flex:1; background:var(--panel); color:var(--fg); border:1px solid var(--border); border-radius:8px;
-               padding:10px 12px; font:inherit; font-size:14px; resize:vertical; min-height:64px; }
+    .panel { background:var(--panel); border:1px solid var(--border); border-radius:10px; padding:14px 16px;
+             margin-bottom:14px; }
+    .panel h3 { margin:0 0 10px; font-size:12px; font-weight:600; color:var(--muted); text-transform:uppercase;
+                letter-spacing:0.05em; display:flex; align-items:center; gap:8px; }
+    .panel h3 .tag { font-size:10px; background:var(--code); color:var(--muted); padding:1px 6px;
+                     border-radius:999px; text-transform:none; letter-spacing:0; }
+    .row { display:flex; gap:8px; }
+    .row.col { flex-direction:column; }
+    textarea, input[type="text"], input[type="file"] {
+      flex:1; background:#0b0f15; color:var(--fg); border:1px solid var(--border); border-radius:8px;
+      padding:10px 12px; font:inherit; font-size:14px;
+    }
+    textarea { resize:vertical; min-height:64px; }
     button { padding:10px 16px; border-radius:8px; border:none; background:var(--accent); color:white;
-             font-weight:600; cursor:pointer; }
+             font-weight:600; cursor:pointer; white-space:nowrap; }
+    button.ghost { background:transparent; color:var(--accent); border:1px solid var(--border); }
+    button.danger { background:transparent; color:var(--bad); border:1px solid var(--border); padding:4px 10px; font-size:12px; }
     button:disabled { opacity:0.6; cursor:wait; }
     .bubble { background:var(--panel); border:1px solid var(--border); border-radius:10px; padding:14px 16px;
               margin-bottom:14px; }
-    .bubble h3 { margin:0 0 6px; font-size:13px; font-weight:600; color:var(--muted); text-transform:uppercase;
-                 letter-spacing:0.04em; }
-    .answer { white-space:pre-wrap; line-height:1.55; }
+    .bubble h3 { margin:0 0 6px; font-size:12px; font-weight:600; color:var(--muted); text-transform:uppercase;
+                 letter-spacing:0.05em; }
+    .answer { white-space:pre-wrap; line-height:1.55; font-size:14.5px; }
     .answer strong { color:var(--accent); }
     .answer code { background:var(--code); padding:1px 5px; border-radius:4px; font-size:12.5px; }
-    .citations { font-size:12.5px; color:var(--muted); }
+    .citations { font-size:12.5px; color:var(--muted); margin-top:8px; }
     .citations div { padding:3px 0; }
     .err { color:var(--bad); }
+    .ok  { color:var(--good); }
+    .hint { font-size:12px; color:var(--muted); margin-top:6px; }
+    .uploads { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+    .modes { display:flex; gap:6px; flex-wrap:wrap; margin-top:8px; }
+    .modes label { font-size:12px; color:var(--muted); display:flex; align-items:center; gap:4px;
+                   border:1px solid var(--border); border-radius:999px; padding:3px 10px; cursor:pointer;
+                   background:var(--code); }
+    .modes input[type="radio"] { accent-color: var(--accent); margin:0; }
+    .modes label.active { color:var(--fg); border-color:var(--accent); background:transparent; }
+    .corpus table { width:100%; border-collapse:collapse; font-size:13px; }
+    .corpus th, .corpus td { text-align:left; padding:6px 8px; border-bottom:1px solid var(--border); }
+    .corpus th { color:var(--muted); font-weight:600; font-size:11px; text-transform:uppercase; letter-spacing:0.05em; }
+    .corpus td.right { text-align:right; }
+    .corpus .empty { color:var(--muted); font-size:12.5px; padding:8px 0; }
     footer { color:var(--muted); font-size:11.5px; padding:14px 20px; text-align:center; }
+    summary { cursor:pointer; color:var(--muted); font-size:12px; }
+    pre.raw { background:#0b0f15; border:1px solid var(--border); border-radius:6px; padding:8px;
+              font-size:11.5px; max-height:240px; overflow:auto; color:var(--muted); }
+    .streaming::after {
+      content:'▍'; display:inline-block; margin-left:2px; color:var(--accent);
+      animation: blink 0.9s steps(2, start) infinite;
+    }
+    @keyframes blink { 50% { opacity: 0; } }
   </style>
 </head>
 <body>
   <header>
     <h1>SSDB RAG</h1>
     <span class="pill">backend: {{ backend }}</span>
-    <span class="pill">{{ backend_url }}</span>
-    <span class="pill">collection: {{ collection }}</span>
+    <span class="pill" title="{{ backend_url }}">runner: {{ backend_url }}</span>
+    <span class="pill" title="{{ ssdb_rag_url }}">ssdb: {{ ssdb_rag_url }}</span>
+    <span class="pill">collection:</span>
+    <select id="collectionSel" title="Switch collection">
+      <option value="{{ collection }}" selected>{{ collection }}</option>
+    </select>
+    <button id="collRefresh" class="ghost" type="button" style="padding:2px 8px; font-size:11px;">↻</button>
   </header>
 
   <main>
-    <form id="ask">
-      <div class="row">
-        <textarea id="q" placeholder="Ask a question about the corpus…" autofocus></textarea>
-        <button id="go" type="submit">Ask</button>
-      </div>
-    </form>
+    <!-- ────── Ask ────── -->
+    <div class="panel">
+      <h3>Ask <span class="tag" id="askTag">→ /generate (LLM + secret-shared retrieval)</span></h3>
+      <form id="ask">
+        <div class="row">
+          <textarea id="q" placeholder="Ask a question about the corpus…" autofocus></textarea>
+          <button id="askGo" type="submit">Ask</button>
+        </div>
+        <div class="modes" id="modes">
+          {% if backend == "toolkit" %}
+            <label data-mode="rag" class="active">
+              <input type="radio" name="mode" value="rag" checked> RAG (LLM + retrieval)
+            </label>
+          {% endif %}
+          <label data-mode="retrieval" {% if backend != "toolkit" %}class="active"{% endif %}>
+            <input type="radio" name="mode" value="retrieval"
+                   {% if backend != "toolkit" %}checked{% endif %}> Retrieval-only (no LLM)
+          </label>
+          {% if has_llm_only %}
+            <label data-mode="llm_only">
+              <input type="radio" name="mode" value="llm_only"> LLM-only (no retrieval)
+            </label>
+          {% endif %}
+          <label data-mode="stream" style="margin-left:auto;">
+            <input type="checkbox" id="streamChk"> stream
+          </label>
+        </div>
+        <div class="hint">
+          Tip: try <em>"What is the source tag for the chronic-care narrative?"</em> to force a retrieval.
+        </div>
+      </form>
+    </div>
+
+    <!-- ────── Upload ────── -->
+    <div class="panel">
+      <h3>Upload to corpus <span class="tag">→ /api/v1/ingest (Shamir-split + WAL fan-out)</span></h3>
+      <form id="upload" enctype="multipart/form-data">
+        <div class="uploads">
+          <input type="file" id="file" name="file"
+                 accept=".md,.txt,.html,.htm,.xhtml,.rst,.csv,.json,.log,.py,.yml,.yaml,.pdf,.docx,.epub,.rtf" />
+          <button id="uploadGo" type="submit">Upload file</button>
+          <button id="uploadPasteToggle" type="button" class="ghost">Paste text…</button>
+        </div>
+        <div id="pasteBox" style="display:none; margin-top:10px;">
+          <input type="text" id="pasteTitle" placeholder="Title (e.g. my-notes-2026-05-06.md)" />
+          <textarea id="pasteText" placeholder="Paste the document body here…" style="margin-top:8px;"></textarea>
+          <div class="row" style="margin-top:8px;">
+            <button id="uploadPasteGo" type="button">Ingest pasted text</button>
+          </div>
+        </div>
+        <div class="hint">
+          Supported: PDF, DOCX, HTML, EPUB, RTF, Markdown, plain text.
+          Files are extracted, chunked at ~800 chars, embedded with
+          <code>nomic-embed-text</code>, secret-shared (k=2 of n=3),
+          and written to the active collection.
+        </div>
+      </form>
+    </div>
+
+    <!-- ────── Corpus ────── -->
+    <div class="panel corpus">
+      <h3>
+        Corpus
+        <span class="tag">→ /api/v1/list · /api/v1/delete</span>
+        <button id="corpusRefresh" class="ghost" type="button" style="margin-left:auto; padding:2px 10px; font-size:11px;">refresh</button>
+      </h3>
+      <div id="corpusBody"><div class="empty">Click refresh to list documents in this collection.</div></div>
+    </div>
 
     <div id="out"></div>
   </main>
@@ -58,72 +162,346 @@
   <footer>
     Pure-retrieval mode shows top-k chunks straight from <code>/api/v1/retrieve</code>.
     Toolkit mode hits <code>/generate</code> on the agent and shows the LLM answer.
+    LLM-only skips retrieval entirely.
   </footer>
 
   <script>
     const out = document.getElementById('out');
-    const form = document.getElementById('ask');
-    const ta = document.getElementById('q');
-    const btn = document.getElementById('go');
+    const collectionSel = document.getElementById('collectionSel');
 
-    form.addEventListener('submit', async (e) => {
+    function currentCollection() {
+      return collectionSel.value || {{ collection|tojson }};
+    }
+    function currentMode() {
+      const r = document.querySelector('input[name="mode"]:checked');
+      return r ? r.value : 'auto';
+    }
+    function isStreaming() {
+      const c = document.getElementById('streamChk');
+      return !!(c && c.checked);
+    }
+
+    // Highlight active mode pill
+    document.querySelectorAll('#modes input[type="radio"]').forEach(r => {
+      r.addEventListener('change', () => {
+        document.querySelectorAll('#modes label[data-mode]').forEach(l => l.classList.remove('active'));
+        const lbl = r.closest('label');
+        if (lbl) lbl.classList.add('active');
+        const tag = document.getElementById('askTag');
+        if (tag) {
+          tag.textContent = ({
+            rag:        '→ /generate (LLM + secret-shared retrieval)',
+            retrieval:  '→ /api/v1/retrieve (no LLM)',
+            llm_only:   '→ /generate (LLM only, retrieval disabled)',
+          })[r.value] || tag.textContent;
+        }
+      });
+    });
+
+    // ── Ask ──────────────────────────────────────────────────────────────
+    const askForm = document.getElementById('ask');
+    const ta = document.getElementById('q');
+    const askBtn = document.getElementById('askGo');
+
+    askForm.addEventListener('submit', async (e) => {
       e.preventDefault();
       const q = ta.value.trim();
       if (!q) return;
-      btn.disabled = true; btn.textContent = '…';
+      askBtn.disabled = true; askBtn.textContent = '…';
+      pushBubble('Question', q, 'q');
 
-      const userBubble = document.createElement('div');
-      userBubble.className = 'bubble';
-      userBubble.innerHTML = '<h3>Question</h3><div class="answer"></div>';
-      userBubble.querySelector('.answer').textContent = q;
-      out.prepend(userBubble);
+      const body = { question: q, mode: currentMode(), collection: currentCollection() };
 
       try {
-        const r = await fetch('/api/ask', {
-          method: 'POST',
-          headers: { 'content-type': 'application/json' },
-          body: JSON.stringify({ question: q }),
-        });
-        const data = await r.json();
-        const b = document.createElement('div');
-        b.className = 'bubble';
-        if (!data.ok) {
-          b.innerHTML = `<h3>Error</h3><div class="answer err">${data.error || 'unknown'}</div>`;
+        if (isStreaming()) {
+          await streamAsk(body);
         } else {
-          let html = `<h3>Answer (${data.backend})</h3>`;
-          html += `<div class="answer">${renderMd(data.answer || '')}</div>`;
-          if (data.citations && data.citations.length) {
-            html += '<h3 style="margin-top:14px;">Sources</h3><div class="citations">';
-            for (const c of data.citations) {
-              html += `<div>${c.id || ''} ${escape(c.title || '(untitled)')} — <code>${escape(c.source || '')}</code></div>`;
-            }
-            html += '</div>';
-          }
-          b.innerHTML = html;
+          const r = await fetch('/api/ask', {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify(body),
+          });
+          const data = await r.json();
+          renderAnswer(data);
         }
-        out.prepend(b);
-      } catch (e) {
-        const b = document.createElement('div');
-        b.className = 'bubble';
-        b.innerHTML = `<h3>Error</h3><div class="answer err">${escape(e.message || e)}</div>`;
-        out.prepend(b);
+      } catch (err) {
+        renderError(err.message || String(err));
       } finally {
-        btn.disabled = false; btn.textContent = 'Ask';
+        askBtn.disabled = false; askBtn.textContent = 'Ask';
         ta.value = ''; ta.focus();
       }
     });
 
+    async function streamAsk(body) {
+      // SSE wrapped as fetch+stream-reader so we can POST a JSON body.
+      const r = await fetch('/api/ask/stream', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      if (!r.body) {
+        const data = await r.json();
+        renderAnswer(data);
+        return;
+      }
+      const bubble = makeBubble();
+      bubble.classList.add('streaming');
+      const head = document.createElement('h3'); head.textContent = 'Answer (streaming)';
+      const ans = document.createElement('div'); ans.className = 'answer';
+      bubble.appendChild(head); bubble.appendChild(ans);
+      out.prepend(bubble);
+
+      const reader = r.body.getReader();
+      const decoder = new TextDecoder();
+      let buf = '';
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        buf += decoder.decode(value, { stream: true });
+        // Parse SSE events: blocks separated by \n\n
+        let idx;
+        while ((idx = buf.indexOf('\n\n')) >= 0) {
+          const block = buf.slice(0, idx); buf = buf.slice(idx + 2);
+          const lines = block.split('\n');
+          let event = 'message', data = '';
+          for (const line of lines) {
+            if (line.startsWith('event:')) event = line.slice(6).trim();
+            else if (line.startsWith('data:')) data += line.slice(5).trim();
+          }
+          let payload = {};
+          try { payload = JSON.parse(data); } catch {}
+          if (event === 'meta') {
+            head.textContent = `Answer (${payload.backend || ''} · ${payload.mode || ''})`;
+          } else if (event === 'token') {
+            ans.innerHTML += renderMd(payload.text || '');
+          } else if (event === 'done') {
+            bubble.classList.remove('streaming');
+            const cits = payload.citations || [];
+            if (cits.length) {
+              const c = document.createElement('div'); c.className = 'citations';
+              c.innerHTML = '<strong>Sources</strong>' + cits.map(x =>
+                `<div>${escape(x.id || '')} ${escape(x.title || '(untitled)')} — `
+                + `<code>${escape(x.source || '')}</code></div>`
+              ).join('');
+              bubble.appendChild(c);
+            }
+          } else if (event === 'error') {
+            bubble.classList.remove('streaming');
+            ans.classList.add('err');
+            ans.textContent = payload.error || 'stream error';
+          }
+        }
+      }
+    }
+
+    // ── Upload ───────────────────────────────────────────────────────────
+    const uploadForm = document.getElementById('upload');
+    const fileInput = document.getElementById('file');
+    const uploadBtn = document.getElementById('uploadGo');
+    const pasteToggle = document.getElementById('uploadPasteToggle');
+    const pasteBox = document.getElementById('pasteBox');
+    const pasteTitle = document.getElementById('pasteTitle');
+    const pasteText = document.getElementById('pasteText');
+    const pasteBtn = document.getElementById('uploadPasteGo');
+
+    pasteToggle.addEventListener('click', () => {
+      pasteBox.style.display = pasteBox.style.display === 'none' ? 'block' : 'none';
+    });
+
+    uploadForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (!fileInput.files || !fileInput.files.length) {
+        renderError('Pick a file first (or use Paste text…).');
+        return;
+      }
+      uploadBtn.disabled = true; uploadBtn.textContent = '…';
+      try {
+        const fd = new FormData();
+        fd.append('file', fileInput.files[0]);
+        fd.append('collection', currentCollection());
+        const r = await fetch('/api/upload', { method: 'POST', body: fd });
+        const data = await r.json();
+        renderUploadResult(data);
+        if (data.ok) refreshCorpus();
+      } catch (e) {
+        renderError(e.message || String(e));
+      } finally {
+        uploadBtn.disabled = false; uploadBtn.textContent = 'Upload file';
+        fileInput.value = '';
+      }
+    });
+
+    pasteBtn.addEventListener('click', async () => {
+      const text = pasteText.value;
+      const title = pasteTitle.value.trim() || 'pasted-text';
+      if (!text.trim()) {
+        renderError('Paste some text first.');
+        return;
+      }
+      pasteBtn.disabled = true; pasteBtn.textContent = '…';
+      try {
+        const r = await fetch('/api/upload', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ text, title, source: title, collection: currentCollection() }),
+        });
+        const data = await r.json();
+        renderUploadResult(data);
+        if (data.ok) refreshCorpus();
+      } catch (e) {
+        renderError(e.message || String(e));
+      } finally {
+        pasteBtn.disabled = false; pasteBtn.textContent = 'Ingest pasted text';
+        pasteText.value = ''; pasteTitle.value = '';
+        pasteBox.style.display = 'none';
+      }
+    });
+
+    // ── Corpus list / delete ─────────────────────────────────────────────
+    const corpusBody = document.getElementById('corpusBody');
+    document.getElementById('corpusRefresh').addEventListener('click', refreshCorpus);
+
+    async function refreshCorpus() {
+      corpusBody.innerHTML = '<div class="empty">loading…</div>';
+      try {
+        const r = await fetch(`/api/list?collection=${encodeURIComponent(currentCollection())}`);
+        const data = await r.json();
+        if (!data.ok) {
+          corpusBody.innerHTML = `<div class="empty err">${escape(data.error || 'list failed')}</div>`;
+          return;
+        }
+        const docs = data.documents || [];
+        if (!docs.length) {
+          corpusBody.innerHTML = '<div class="empty">No documents in this collection yet.</div>';
+          return;
+        }
+        const rows = docs.map(d => `
+          <tr>
+            <td>${escape(d.title || '(untitled)')}</td>
+            <td><code>${escape(d.source || '')}</code></td>
+            <td class="right">${d.chunks ?? 0}</td>
+            <td class="right">
+              <button class="danger" data-source="${escape(d.source || '')}">delete</button>
+            </td>
+          </tr>
+        `).join('');
+        corpusBody.innerHTML = `
+          <table>
+            <thead><tr><th>Title</th><th>Source</th><th class="right">Chunks</th><th></th></tr></thead>
+            <tbody>${rows}</tbody>
+          </table>
+        `;
+        corpusBody.querySelectorAll('button.danger').forEach(b => {
+          b.addEventListener('click', async () => {
+            const source = b.getAttribute('data-source');
+            if (!confirm(`Delete all chunks with source = ${source}?`)) return;
+            b.disabled = true; b.textContent = '…';
+            try {
+              const r = await fetch('/api/delete', {
+                method: 'POST',
+                headers: { 'content-type': 'application/json' },
+                body: JSON.stringify({ source, collection: currentCollection() }),
+              });
+              const dd = await r.json();
+              if (!dd.ok) renderError(dd.error || 'delete failed');
+              else refreshCorpus();
+            } catch (e) { renderError(e.message || String(e)); }
+          });
+        });
+      } catch (e) {
+        corpusBody.innerHTML = `<div class="empty err">${escape(e.message || String(e))}</div>`;
+      }
+    }
+
+    // ── Collection switcher ──────────────────────────────────────────────
+    document.getElementById('collRefresh').addEventListener('click', refreshCollections);
+    collectionSel.addEventListener('change', refreshCorpus);
+
+    async function refreshCollections() {
+      try {
+        const r = await fetch('/api/collections');
+        const data = await r.json();
+        if (!data.ok) return;
+        const cur = currentCollection();
+        const opts = (data.collections || []).map(c =>
+          `<option value="${escape(c.name)}" ${c.name === cur ? 'selected' : ''}>${escape(c.name)} (${c.rows ?? '?'})</option>`
+        ).join('');
+        // Always keep the current value selectable even if list is empty
+        if (opts) collectionSel.innerHTML = opts;
+        else collectionSel.innerHTML = `<option value="${escape(cur)}" selected>${escape(cur)}</option>`;
+      } catch {}
+    }
+
+    // ── Rendering helpers ────────────────────────────────────────────────
+    function makeBubble() {
+      const b = document.createElement('div');
+      b.className = 'bubble';
+      return b;
+    }
+    function pushBubble(label, text, kind) {
+      const b = makeBubble();
+      b.innerHTML = `<h3>${escape(label)}</h3><div class="answer ${kind === 'err' ? 'err' : ''}"></div>`;
+      b.querySelector('.answer').textContent = text;
+      out.prepend(b);
+    }
+    function renderAnswer(data) {
+      const b = makeBubble();
+      if (!data.ok) {
+        b.innerHTML = `<h3>Error (${escape(data.mode || data.backend || '')})</h3>`
+                    + `<div class="answer err">${escape(data.error || 'unknown')}</div>`;
+      } else {
+        let html = `<h3>Answer (${escape(data.backend || '')} · ${escape(data.mode || '')})</h3>`;
+        html += `<div class="answer">${renderMd(data.answer || '')}</div>`;
+        if (data.citations && data.citations.length) {
+          html += '<div class="citations"><strong>Sources</strong>';
+          for (const c of data.citations) {
+            html += `<div>${escape(c.id || '')} ${escape(c.title || '(untitled)')} — `
+                  + `<code>${escape(c.source || '')}</code></div>`;
+          }
+          html += '</div>';
+        }
+        if (data.raw) {
+          html += `<details style="margin-top:10px;"><summary>raw response</summary>`
+                + `<pre class="raw">${escape(JSON.stringify(data.raw, null, 2))}</pre></details>`;
+        }
+        b.innerHTML = html;
+      }
+      out.prepend(b);
+    }
+    function renderUploadResult(data) {
+      const b = makeBubble();
+      if (!data.ok) {
+        b.innerHTML = `<h3>Upload failed</h3><div class="answer err">${escape(data.error || 'unknown')}</div>`;
+      } else {
+        const fmt = (data.extract && data.extract.format) || 'plain';
+        const chars = (data.extract && data.extract.chars) || 0;
+        b.innerHTML = `<h3>Uploaded</h3>`
+                    + `<div class="answer ok">`
+                    +   `Ingested <strong>${escape(data.title || '')}</strong> `
+                    +   `(${data.inserted ?? '?'} chunk(s), ${chars.toLocaleString()} chars, format <code>${escape(fmt)}</code>) into `
+                    +   `<code>${escape(data.collection || '')}</code> in ${data.elapsed_ms ?? '?'} ms.`
+                    + `</div>`;
+      }
+      out.prepend(b);
+    }
+    function renderError(msg) {
+      const b = makeBubble();
+      b.innerHTML = `<h3>Error</h3><div class="answer err">${escape(msg)}</div>`;
+      out.prepend(b);
+    }
     function escape(s) {
-      return String(s).replace(/[&<>]/g, m => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;' }[m]));
+      return String(s).replace(/[&<>"']/g, m => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m]));
     }
     function renderMd(s) {
-      // Tiny: bold + inline code + paragraphs.
       return escape(s)
         .replace(/`([^`]+)`/g, '<code>$1</code>')
         .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
         .replace(/\n\n/g, '<br><br>')
         .replace(/\n/g, '<br>');
     }
+
+    // First load
+    refreshCollections().then(refreshCorpus);
   </script>
 </body>
 </html>
